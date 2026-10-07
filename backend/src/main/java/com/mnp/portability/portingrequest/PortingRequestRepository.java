@@ -1,6 +1,8 @@
 package com.mnp.portability.portingrequest;
 
 import com.mnp.portability.operator.Operator;
+import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -28,6 +30,9 @@ public interface PortingRequestRepository extends JpaRepository<PortingRequest, 
               and r.status = com.mnp.portability.portingrequest.PortingStatus.PENDING
             """)
     Optional<PortingRequest> findPending(@Param("phoneNumber") String phoneNumber);
+
+    /** Requests in the given status created strictly before the cutoff; used to find expired PENDING ones. */
+    List<PortingRequest> findByStatusAndCreatedAtBefore(PortingStatus status, Instant cutoff);
 
     /**
      * Requests the operator is allowed to see: everything where it is the donor or recipient, plus

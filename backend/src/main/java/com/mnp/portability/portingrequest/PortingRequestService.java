@@ -1,5 +1,6 @@
 package com.mnp.portability.portingrequest;
 
+import com.mnp.portability.common.config.PortingProperties;
 import com.mnp.portability.common.exception.BusinessRuleException;
 import com.mnp.portability.common.exception.ForbiddenOperationException;
 import com.mnp.portability.common.exception.ResourceNotFoundException;
@@ -9,6 +10,7 @@ import com.mnp.portability.portingrequest.dto.CreatePortingRequest;
 import com.mnp.portability.portingrequest.dto.PortingRequestResponse;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.List;
 import java.util.function.BiConsumer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -29,8 +31,14 @@ public class PortingRequestService {
     private final PortingRequestRepository portingRequestRepository;
     private final PhoneNumberService phoneNumberService;
     private final PortingRequestMapper mapper;
+    private final PortingProperties properties;
     private final Clock clock;
 
+    /**
+     * Opens a PENDING porting request for the caller (the recipient). The donor is the number's
+     * current holder. Methods return DTOs, not entities, because the entity's operators are lazy
+     * and are only safe to read inside this transaction.
+     */
     @Transactional
     public PortingRequestResponse submit(CreatePortingRequest command, Operator recipient) {
         String phoneNumber = command.phoneNumber();
@@ -89,6 +97,24 @@ public class PortingRequestService {
                 .map(mapper::toResponse);
     }
 
+    /**
+     * Cancels every PENDING request that has waited longer than the configured timeout without a
+     * donor decision. Runs in a single transaction: if a donor decides on one of these requests at
+     * the same moment, the optimistic lock fails the whole batch and the next run retries it.
+     *
+     * @return how many requests were cancelled
+     */
+    @Transactional
+    public int cancelExpired() {
+        Instant now = clock.instant();
+        List<PortingRequest> expired = portingRequestRepository
+                .findByStatusAndCreatedAtBefore(PortingStatus.PENDING, now.minus(properties.requestTimeout()));
+
+        expired.forEach(request -> request.cancel(now));
+        portingRequestRepository.saveAllAndFlush(expired);
+        return expired.size();
+    }
+
     private PortingRequestResponse decide(Long id, Operator caller, BiConsumer<PortingRequest, Instant> decision) {
         PortingRequest request = findVisible(id, caller);
 
@@ -99,11 +125,21 @@ public class PortingRequestService {
             throw BusinessRuleException.conflict(
                     "Porting request %d is already %s".formatted(id, request.getStatus()));
         }
+        if (hasTimedOut(request)) {
+            // Past the deadline but not yet swept by the cleanup job: it is as good as canceled.
+            throw BusinessRuleException.conflict(
+                    "Porting request %d has timed out and is about to be canceled".formatted(id));
+        }
 
         decision.accept(request, clock.instant());
         // Flush so a concurrent change (e.g. the timeout job) fails here and not after the response is built.
         portingRequestRepository.saveAndFlush(request);
         return mapper.toResponse(request);
+    }
+
+    /** Same boundary the cleanup query uses: created strictly before (now - timeout). */
+    private boolean hasTimedOut(PortingRequest request) {
+        return request.getCreatedAt().isBefore(clock.instant().minus(properties.requestTimeout()));
     }
 
     /** A request that does not exist and one the caller may not see look identical: both are 404. */
