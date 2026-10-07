@@ -12,6 +12,10 @@ import java.time.Instant;
 import java.util.function.BiConsumer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,11 +23,13 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class PortingRequestService {
 
+    /** Lists are always newest first; clients cannot choose the sort. */
+    private static final Sort NEWEST_FIRST = Sort.by(Sort.Direction.DESC, "createdAt", "id");
+
     private final PortingRequestRepository portingRequestRepository;
     private final PhoneNumberService phoneNumberService;
     private final PortingRequestMapper mapper;
     private final Clock clock;
-
 
     @Transactional
     public PortingRequestResponse submit(CreatePortingRequest command, Operator recipient) {
@@ -65,11 +71,26 @@ public class PortingRequestService {
         return decide(id, caller, PortingRequest::reject);
     }
 
+    /** One request, or 404 if it does not exist or the caller is not allowed to see it. */
+    @Transactional(readOnly = true)
+    public PortingRequestResponse get(Long id, Operator caller) {
+        return mapper.toResponse(findVisible(id, caller));
+    }
+
+    /**
+     * A page of the requests the caller may see, newest first.
+     *
+     * @param status optional status filter; {@code null} means any
+     */
+    @Transactional(readOnly = true)
+    public Page<PortingRequestResponse> list(Operator caller, PortingStatus status, Pageable pageable) {
+        Pageable newestFirst = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), NEWEST_FIRST);
+        return portingRequestRepository.findVisibleTo(caller, status, newestFirst)
+                .map(mapper::toResponse);
+    }
+
     private PortingRequestResponse decide(Long id, Operator caller, BiConsumer<PortingRequest, Instant> decision) {
-        PortingRequest request = portingRequestRepository.findById(id)
-                .filter(found -> found.isVisibleTo(caller))
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Porting request %d not found".formatted(id)));
+        PortingRequest request = findVisible(id, caller);
 
         if (!request.isDonor(caller)) {
             throw new ForbiddenOperationException("Only the donor operator can accept or reject a porting request");
@@ -83,6 +104,14 @@ public class PortingRequestService {
         // Flush so a concurrent change (e.g. the timeout job) fails here and not after the response is built.
         portingRequestRepository.saveAndFlush(request);
         return mapper.toResponse(request);
+    }
+
+    /** A request that does not exist and one the caller may not see look identical: both are 404. */
+    private PortingRequest findVisible(Long id, Operator caller) {
+        return portingRequestRepository.findById(id)
+                .filter(found -> found.isVisibleTo(caller))
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Porting request %d not found".formatted(id)));
     }
 
     private static BusinessRuleException pendingRequestConflict(String phoneNumber) {
