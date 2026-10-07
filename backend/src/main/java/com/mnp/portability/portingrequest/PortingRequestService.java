@@ -1,11 +1,15 @@
 package com.mnp.portability.portingrequest;
 
 import com.mnp.portability.common.exception.BusinessRuleException;
+import com.mnp.portability.common.exception.ForbiddenOperationException;
+import com.mnp.portability.common.exception.ResourceNotFoundException;
 import com.mnp.portability.operator.Operator;
 import com.mnp.portability.phonenumber.PhoneNumberService;
 import com.mnp.portability.portingrequest.dto.CreatePortingRequest;
 import com.mnp.portability.portingrequest.dto.PortingRequestResponse;
 import java.time.Clock;
+import java.time.Instant;
+import java.util.function.BiConsumer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -20,7 +24,7 @@ public class PortingRequestService {
     private final PortingRequestMapper mapper;
     private final Clock clock;
 
-    
+
     @Transactional
     public PortingRequestResponse submit(CreatePortingRequest command, Operator recipient) {
         String phoneNumber = command.phoneNumber();
@@ -46,6 +50,38 @@ public class PortingRequestService {
             // Lost a race with a concurrent request for the same number: the DB is the final guard.
             throw pendingRequestConflict(phoneNumber);
         }
+        return mapper.toResponse(request);
+    }
+
+    /** The donor accepts: the recipient becomes the number's holder. */
+    @Transactional
+    public PortingRequestResponse accept(Long id, Operator caller) {
+        return decide(id, caller, PortingRequest::accept);
+    }
+
+    /** The donor rejects: the number stays with the donor. */
+    @Transactional
+    public PortingRequestResponse reject(Long id, Operator caller) {
+        return decide(id, caller, PortingRequest::reject);
+    }
+
+    private PortingRequestResponse decide(Long id, Operator caller, BiConsumer<PortingRequest, Instant> decision) {
+        PortingRequest request = portingRequestRepository.findById(id)
+                .filter(found -> found.isVisibleTo(caller))
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Porting request %d not found".formatted(id)));
+
+        if (!request.isDonor(caller)) {
+            throw new ForbiddenOperationException("Only the donor operator can accept or reject a porting request");
+        }
+        if (!request.isPending()) {
+            throw BusinessRuleException.conflict(
+                    "Porting request %d is already %s".formatted(id, request.getStatus()));
+        }
+
+        decision.accept(request, clock.instant());
+        // Flush so a concurrent change (e.g. the timeout job) fails here and not after the response is built.
+        portingRequestRepository.saveAndFlush(request);
         return mapper.toResponse(request);
     }
 

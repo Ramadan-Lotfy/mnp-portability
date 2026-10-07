@@ -75,6 +75,19 @@ public class PortingRequest {
         return status == PortingStatus.PENDING;
     }
 
+    public boolean isDonor(Operator operator) {
+        return donor.getId().equals(operator.getId());
+    }
+
+    public boolean involves(Operator operator) {
+        return isDonor(operator) || recipient.getId().equals(operator.getId());
+    }
+
+    
+    public boolean isVisibleTo(Operator operator) {
+        return status == PortingStatus.ACCEPTED || involves(operator);
+    }
+
     public void accept(Instant now) {
         transitionTo(PortingStatus.ACCEPTED, now);
     }

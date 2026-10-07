@@ -9,6 +9,7 @@ import jakarta.validation.Valid;
 import java.net.URI;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -33,5 +34,17 @@ public class PortingRequestController {
                 .buildAndExpand(created.id())
                 .toUri();
         return ResponseEntity.created(location).body(created);
+    }
+
+    @Operation(summary = "Accept a porting request", description = "Only the donor operator can accept.")
+    @PostMapping("/{id}/accept")
+    public PortingRequestResponse accept(@PathVariable Long id, @CurrentOperator Operator donor) {
+        return portingRequestService.accept(id, donor);
+    }
+
+    @Operation(summary = "Reject a porting request", description = "Only the donor operator can reject.")
+    @PostMapping("/{id}/reject")
+    public PortingRequestResponse reject(@PathVariable Long id, @CurrentOperator Operator donor) {
+        return portingRequestService.reject(id, donor);
     }
 }
