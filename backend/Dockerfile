@@ -3,13 +3,16 @@ FROM eclipse-temurin:17-jdk AS build
 WORKDIR /workspace
 
 # Resolve dependencies first: this layer is reused until the pom changes.
+# The cache mount keeps ~/.m2 (including the Maven distribution the wrapper downloads) between builds.
 COPY mvnw pom.xml ./
 COPY .mvn .mvn
-RUN chmod +x mvnw && ./mvnw -B -q dependency:go-offline
+RUN --mount=type=cache,target=/root/.m2 \
+    chmod +x mvnw && ./mvnw -B -q dependency:go-offline
 
 # Then compile. Tests run via `./mvnw verify` (they need Docker themselves), not inside the image build.
 COPY src src
-RUN ./mvnw -B -q package -DskipTests
+RUN --mount=type=cache,target=/root/.m2 \
+    ./mvnw -B -q package -DskipTests
 
 # ---------- Stage 2: runtime ----------
 FROM eclipse-temurin:17-jre

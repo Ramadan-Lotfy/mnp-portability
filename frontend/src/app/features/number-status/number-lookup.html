@@ -1,0 +1,38 @@
+<section class="card narrow">
+  <h2>Number status</h2>
+  <p class="muted">Find out whether a number was ported and which operator holds it now.</p>
+
+  <form [formGroup]="form" (ngSubmit)="lookup()" novalidate>
+    <label for="lookupNumber">Phone number</label>
+    <input
+      id="lookupNumber"
+      formControlName="phoneNumber"
+      type="text"
+      inputmode="numeric"
+      maxlength="11"
+      placeholder="01012345678"
+      autocomplete="off"
+    />
+    @if (phoneNumber.touched && phoneNumber.invalid) {
+    <p class="field-error">Enter an 11-digit mobile number starting with 01, e.g. 01012345678.</p>
+    }
+    <button type="submit" [disabled]="loading()">{{ loading() ? 'Looking up…' : 'Look up' }}</button>
+  </form>
+
+  @if (error(); as message) {
+  <p class="alert error" role="alert">{{ message }}</p>
+  }
+
+  @if (result(); as status) {
+  <dl class="details">
+    <dt>Number</dt>
+    <dd>{{ status.phoneNumber }}</dd>
+    <dt>Status</dt>
+    <dd><span [class]="'badge badge-' + tone[status.status]">{{ label[status.status] }}</span></dd>
+    <dt>Current operator</dt>
+    <dd class="cap">{{ status.currentOperator }}</dd>
+    <dt>Original operator</dt>
+    <dd class="cap">{{ status.originalOperator }}</dd>
+  </dl>
+  }
+</section>

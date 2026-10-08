@@ -1,0 +1,110 @@
+:root {
+  --bg: #f4f6f9;
+  --surface: #ffffff;
+  --text: #1c2430;
+  --muted: #667085;
+  --border: #d9dee7;
+  --primary: #1d4ed8;
+  --success: #15803d;
+  --danger: #b42318;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+}
+
+h1, h2 { margin: 0; }
+h1 { font-size: 1.25rem; }
+h2 { font-size: 1.15rem; margin-bottom: 0.25rem; }
+a { color: var(--primary); }
+.muted { color: var(--muted); }
+.cap { text-transform: capitalize; }
+
+/* ---------- layout ---------- */
+.topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 2rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.topbar nav { display: flex; gap: 1rem; flex: 1; }
+.topbar nav a { text-decoration: none; color: var(--muted); padding: 0.25rem 0; border-bottom: 2px solid transparent; }
+.topbar nav a.active { color: var(--primary); border-bottom-color: var(--primary); }
+.operator { display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; color: var(--muted); }
+
+main { max-width: 960px; margin: 1.5rem auto; padding: 0 1rem; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; }
+.narrow { max-width: 520px; }
+
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; }
+.toolbar-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; }
+.toolbar-actions label { display: flex; align-items: center; gap: 0.4rem; margin: 0; font-weight: 400; }
+
+/* ---------- forms and buttons ---------- */
+label { display: block; font-weight: 600; margin: 1rem 0 0.35rem; }
+input, select {
+  font: inherit;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+}
+input { width: 100%; }
+input.ng-touched.ng-invalid { border-color: var(--danger); }
+
+button, a.button {
+  font: inherit;
+  display: inline-block;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid var(--primary);
+  border-radius: 6px;
+  background: var(--primary);
+  color: #fff;
+  text-decoration: none;
+  cursor: pointer;
+}
+form button { margin-top: 1rem; }
+button.secondary { background: var(--surface); color: var(--primary); }
+button.success { background: var(--success); border-color: var(--success); }
+button.danger { background: var(--danger); border-color: var(--danger); }
+button:disabled { opacity: 0.55; cursor: not-allowed; }
+.actions { white-space: nowrap; }
+.actions button { padding: 0.3rem 0.65rem; font-size: 0.875rem; }
+.actions button + button { margin-left: 0.4rem; }
+
+.field-error { color: var(--danger); font-size: 0.875rem; margin: 0.35rem 0 0; }
+
+.alert { padding: 0.65rem 0.9rem; border-radius: 6px; margin: 1rem 0; }
+.alert.error { background: #fef3f2; color: var(--danger); border: 1px solid #fecdca; }
+.alert.success { background: #ecfdf3; color: var(--success); border: 1px solid #abefc6; }
+
+/* ---------- table ---------- */
+.table-wrap { overflow-x: auto; margin-top: 1rem; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--border); }
+th { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); }
+
+.pager { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 1rem; }
+
+/* ---------- status badges ---------- */
+.badge { display: inline-block; padding: 0.1rem 0.55rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; }
+.badge-neutral { background: #eef0f3; color: #475467; }
+.badge-info { background: #e0ecff; color: #1d4ed8; }
+.badge-warn { background: #fef3c7; color: #92400e; }
+.badge-success { background: #dcfce7; color: #166534; }
+.badge-danger { background: #fee4e2; color: #b42318; }
+
+/* ---------- details ---------- */
+.details { display: grid; grid-template-columns: max-content 1fr; gap: 0.4rem 1.5rem; margin: 1.25rem 0 0; }
+.details dt { color: var(--muted); }
+.details dd { margin: 0; }/* You can add global styles to this file, and also import other style files */
