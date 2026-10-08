@@ -1,0 +1,22 @@
+<header class="topbar">
+  <h1>MNP Portability</h1>
+
+  <nav aria-label="Main">
+    <a routerLink="/requests" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Requests</a>
+    <a routerLink="/requests/new" routerLinkActive="active">New request</a>
+    <a routerLink="/numbers" routerLinkActive="active">Number status</a>
+  </nav>
+
+  <label class="operator">
+    Acting as
+    <select (change)="onOperatorChange($event)">
+      @for (op of operator.operators; track op.code) {
+      <option [value]="op.code" [selected]="op.code === operator.organization()">{{ op.name }}</option>
+      }
+    </select>
+  </label>
+</header>
+
+<main>
+  <router-outlet />
+</main>

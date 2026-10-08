@@ -1,0 +1,83 @@
+<section class="card">
+  <div class="toolbar">
+    <h2>Porting requests</h2>
+    <div class="toolbar-actions">
+      <label>
+        Status
+        <select (change)="onStatusChange($event)">
+          <option value="" [selected]="statusFilter() === ''">All</option>
+          @for (status of statuses; track status) {
+          <option [value]="status" [selected]="statusFilter() === status">{{ status }}</option>
+          }
+        </select>
+      </label>
+      <button type="button" class="secondary" (click)="load()" [disabled]="loading()">Refresh</button>
+      <a class="button" routerLink="/requests/new">New request</a>
+    </div>
+  </div>
+
+  <p class="muted">
+    Showing what <strong class="cap">{{ operator.organization() }}</strong> may see: its own requests in any
+    status, and accepted requests of other operators.
+  </p>
+
+  @if (error(); as message) {
+  <p class="alert error" role="alert">{{ message }}</p>
+  }
+
+  @if (requests().length > 0) {
+  <div class="table-wrap">
+    <table>
+      <thead>
+      <tr>
+        <th>ID</th>
+        <th>Phone number</th>
+        <th>Donor</th>
+        <th>Recipient</th>
+        <th>Status</th>
+        <th>Created</th>
+        <th>Actions</th>
+      </tr>
+      </thead>
+      <tbody>
+      @for (request of requests(); track request.id) {
+      <tr>
+        <td>{{ request.id }}</td>
+        <td>{{ request.phoneNumber }}</td>
+        <td class="cap">{{ request.donor }}</td>
+        <td class="cap">{{ request.recipient }}</td>
+        <td><span [class]="'badge badge-' + tone[request.status]">{{ request.status }}</span></td>
+        <td>{{ request.createdAt | date: 'medium' }}</td>
+        <td class="actions">
+          @if (canDecide(request)) {
+          <button type="button" class="success" [disabled]="busyId() !== null"
+                  (click)="decide(request, 'accept')">Accept</button>
+          <button type="button" class="danger" [disabled]="busyId() !== null"
+                  (click)="decide(request, 'reject')">Reject</button>
+          } @else if (request.status === 'PENDING') {
+          <span class="muted">Awaiting <span class="cap">{{ request.donor }}</span></span>
+          } @else {
+          <span class="muted">—</span>
+          }
+        </td>
+      </tr>
+      }
+      </tbody>
+    </table>
+  </div>
+
+  @if (pageInfo(); as info) {
+  <div class="pager">
+    <button type="button" class="secondary" [disabled]="info.number === 0 || loading()"
+            (click)="goTo(info.number - 1)">Previous</button>
+    <span>Page {{ info.number + 1 }} of {{ info.totalPages }} · {{ info.totalElements }} requests</span>
+    <button type="button" class="secondary" [disabled]="info.number + 1 >= info.totalPages || loading()"
+            (click)="goTo(info.number + 1)">Next</button>
+  </div>
+  }
+  } @else if (loading()) {
+  <p class="muted">Loading…</p>
+  } @else if (!error()) {
+  <p class="muted">No porting requests to show.</p>
+  }
+</section>

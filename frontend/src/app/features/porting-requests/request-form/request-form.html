@@ -1,0 +1,39 @@
+<section class="card narrow">
+  <h2>New porting request</h2>
+  <p class="muted">
+    Submitting as <strong class="cap">{{ operator.organization() }}</strong> (the recipient).
+    The donor is the operator that currently holds the number.
+  </p>
+
+  @if (created(); as request) {
+  <p class="alert success" role="status">
+    Request #{{ request.id }} for {{ request.phoneNumber }} was sent to
+    <strong class="cap">{{ request.donor }}</strong> and is now pending.
+    <a routerLink="/requests">View requests</a>
+  </p>
+  }
+
+  @if (error(); as message) {
+  <p class="alert error" role="alert">{{ message }}</p>
+  }
+
+  <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <label for="phoneNumber">Phone number (one per request)</label>
+    <input
+      id="phoneNumber"
+      formControlName="phoneNumber"
+      type="text"
+      inputmode="numeric"
+      maxlength="11"
+      placeholder="01012345678"
+      autocomplete="off"
+    />
+    @if (phoneNumber.touched && phoneNumber.invalid) {
+    <p class="field-error">Enter an 11-digit mobile number starting with 01, e.g. 01012345678.</p>
+    }
+
+    <button type="submit" [disabled]="submitting()">
+      {{ submitting() ? 'Submitting…' : 'Submit request' }}
+    </button>
+  </form>
+</section>
